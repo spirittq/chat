@@ -2,7 +2,6 @@ from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 from threading import Timer
 import tkinter
-import time
 
 
 def receive():
@@ -14,7 +13,15 @@ def receive():
                 typing_label.config(text=msg)
             elif msg == "{is not typing}":
                 typing_label.config(text='')
+            elif msg == "{seen}" and msg != msg_list.get("end"):
+                msg_list.insert(tkinter.END, msg)
+            elif msg == "{seen}" and msg == msg_list.get("end"):
+                pass
             else:
+                if msg_list.get("end") == "{seen}" or msg_list.get("end")[-6:] == "{Sent}":
+                    print("before delete: " + msg_list.get("end"))
+                    msg_list.delete("end")
+                    print("after delete: " + msg_list.get("end"))
                 msg_list.insert(tkinter.END, msg)
         except OSError:  # Possibly client has left the chat.
             break
@@ -23,8 +30,11 @@ def receive():
 def send(event=None):  # event is passed by binders.
     """Handles sending of messages."""
     msg = my_msg.get()
-    client_socket.send(bytes("{is_not_typing}", "utf8"))
+    if msg_list.get("end") == "{seen}":
+        msg_list.delete("end")
+    msg_list.insert(tkinter.END, msg + "{Sent}")
     my_msg.set("")  # Clears input field.
+    client_socket.send(bytes("{is_not_typing}", "utf8"))
     client_socket.send(bytes(msg, "utf8"))
     if msg == "{quit}":
         t.cancel()
@@ -38,6 +48,7 @@ def on_closing(event=None):
     t.cancel()
     client_socket.send(bytes("{quit}", "utf8"))
     send()
+
 
 def typing(event=None):
     msg = my_msg.get()
@@ -70,6 +81,11 @@ def print_script():
             file.write(msg + '\n')
 
 
+def seen(event=None):
+    if msg_list.get("end") != "{seen}":
+        client_socket.send(bytes("{seen}", "utf8"))
+
+
 top = tkinter.Tk()
 top.title("Chatter")
 messages_frame = tkinter.Frame(top)
@@ -87,6 +103,7 @@ messages_frame.pack()
 entry_field = tkinter.Entry(top, textvariable=my_msg)
 entry_field.bind('<KeyRelease>', typing)
 entry_field.bind("<Return>", send)
+top.bind("<FocusIn>", seen)
 entry_field.pack()
 send_button = tkinter.Button(top, text="Send", command=send)
 print_button = tkinter.Button(top, text="Print", command=print_script)
