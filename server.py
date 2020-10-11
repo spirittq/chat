@@ -1,54 +1,39 @@
 import socket
 from threading import Thread
-from communication import receive_decode, encode_send
+from communication import receive_decode, send_encode
 
 
 def accept_connection():
+
     while True:
-        client_connection, client_address = SERVER.accept()
-        addresses[client_connection] = client_address
+        client_connection, client_address = server.accept()
         print(f"{client_address} has connected.")
-        # client_connection.send("Hello! Please enter your name.".encode(FORMAT))
-        encode_send(client_connection, "Hello! Please enter your name.")
-        addresses[client_connection] = client_address
+        msg = "Hello! Please enter your name"
+        send_encode(client_connection, msg)
         Thread(target=handle_client, args=(client_connection, client_address)).start()
 
 
 def handle_client(client, address):  # Takes client socket as argument.
 
-    # name = client.recv(BUFSIZ).decode(FORMAT)
     name = receive_decode(client)
+
     while name == TYPING_MESSAGE or name == NOT_TYPING_MESSAGE or name == SEEN_MESSAGE:
         if name == QUIT_MESSAGE:
             del clients[client]
             print(f"{address} has disconnected.")
         else:
-            # name = client.recv(BUFSIZ).decode("utf8")
             name = receive_decode(client)
+
     if name != QUIT_MESSAGE:
-        welcome = 'Welcome %s! If you ever want to quit, type {{{quit}}} to exit.' % name
-        # client.send(bytes(welcome, "utf8"))
-        encode_send(client, welcome)
-        msg = "%s has joined the chat!" % name
+        msg = f"You are known as {name}. Type {QUIT_MESSAGE} to exit."
+        send_encode(client, msg)
+        msg = f"{name} has entered chat."
         broadcast_all(msg)
         clients[client] = name
 
         while True:
-            # msg = client.recv(BUFSIZ)
-            # if msg == bytes("{is_typing}", "utf8"):
-            #     broadcast1(bytes("%s is typing..." % name, "utf8"))
-            # elif msg == (bytes("{is_not_typing}", "utf8")):
-            #     broadcast1(bytes("{is not typing}", "utf8"))
-            # elif msg == (bytes("{seen}", "utf8")):
-            #     broadcast2(client, bytes("{seen}", "utf8"))
-            # elif msg != bytes("{{{quit}}}", "utf8"):
-            #     broadcast2(client, msg, name + ": ")
-            # else:
-            #     del clients[client]
-            #     print(f"{address} has disconnected")
-            #     broadcast2(bytes(client, "%s has left the chat." % name, "utf8"))
-            #     break
             msg = receive_decode(client)
+
             if msg == TYPING_MESSAGE:
                 broadcast_all(name + " is " + TYPING_MESSAGE)
             elif msg == NOT_TYPING_MESSAGE:
@@ -60,50 +45,38 @@ def handle_client(client, address):  # Takes client socket as argument.
             else:
                 del clients[client]
                 print(f"{address} has disconnected")
-                broadcast_different(client, f"{name} has left the chat.", name)
+                msg = f"{name} has left the chat."
+                broadcast_all(msg)
                 break
 
 
 def broadcast_all(msg):
-    """Broadcasts a message to all the clients."""
 
     for sock in clients:
-        # sock.send(bytes(prefix, "utf8") + msg)
-        encode_send(sock, msg)
+        send_encode(sock, msg)
 
 
-def broadcast_different(client, msg, name):  # prefix is for name identification.
-    """Broadcasts a message to all the clients."""
+def broadcast_different(client, msg, name):
 
     for sock in clients:
-        # if client == sock and msg != SEEN_MESSAGE:
-        #     # sock.send(bytes(prefix, "utf8") + msg + bytes(" {received}", "utf8"))
-        #     encode_send(sock, "You: " + msg + RECEIVED_MESSAGE)
-        # elif client == sock and msg == SEEN_MESSAGE:
-        #     pass
-        # else:
-        #     # sock.send(bytes(prefix, "utf8") + msg)
-        #     encode_send(sock, name + ": " + msg)
         if msg == SEEN_MESSAGE:
             if client == sock:
                 pass
             else:
-                encode_send(sock, SEEN_MESSAGE)
+                send_encode(sock, SEEN_MESSAGE)
         else:
             if client == sock:
-                encode_send(sock, "You: " + msg + " " + RECEIVED_MESSAGE)
+                send_encode(sock, "You: " + msg + " " + RECEIVED_MESSAGE)
             else:
-                encode_send(sock, name + ": " + msg)
+                send_encode(sock, name + ": " + msg)
 
 
 clients = {}
-addresses = {}
 
-HEADER = 64
 HOST = socket.gethostbyname(socket.gethostname())
 PORT = 8080
 ADDR = (HOST, PORT)
-FORMAT = "utf8"
+
 QUIT_MESSAGE = "{{{quit}}}"
 TYPING_MESSAGE = "{{{typing}}}"
 NOT_TYPING_MESSAGE = "{{{not_typing}}}"
@@ -112,15 +85,13 @@ NAME_MESSAGE = "{{{name}}}"
 SENT_MESSAGE = "{{{sent}}}"
 RECEIVED_MESSAGE = "{{{received}}}"
 
-BUFSIZ = 1024
-
-SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-SERVER.bind(ADDR)
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind(ADDR)
 
 if __name__ == "__main__":
-    SERVER.listen(2)
+    server.listen(2)
     print(f"Server is listening on {HOST}")
     thread = Thread(target=accept_connection)
     thread.start()
     thread.join()
-    SERVER.close()
+    server.close()
