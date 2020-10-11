@@ -15,13 +15,15 @@ def receive():
                 typing_label.config(text='')
             elif msg == "{seen}" and msg != msg_list.get("end"):
                 msg_list.insert(tkinter.END, msg)
-            elif msg == "{seen}" and msg == msg_list.get("end"):
-                pass
             else:
-                if msg_list.get("end") == "{seen}" or msg_list.get("end")[-6:] == "{Sent}":
-                    print("before delete: " + msg_list.get("end"))
+                if msg_list.get("end") == "{seen}" or msg_list.get("end")[-6:] == "{sent}":
                     msg_list.delete("end")
-                    print("after delete: " + msg_list.get("end"))
+                if msg_list.get("end")[-10:] == "{received}":
+                    print(msg)
+                    rewrite = msg_list.get("end")[:-10]
+                    print(rewrite)
+                    msg_list.delete("end")
+                    msg_list.insert(tkinter.END, rewrite)
                 msg_list.insert(tkinter.END, msg)
         except OSError:  # Possibly client has left the chat.
             break
@@ -30,13 +32,15 @@ def receive():
 def send(event=None):  # event is passed by binders.
     """Handles sending of messages."""
     msg = my_msg.get()
-    if msg_list.get("end") == "{seen}":
+    if msg_list.get("end") == "Hello! Please enter your name.":
+        top.title(msg)
+    elif msg_list.get("end") == "{seen}":
         msg_list.delete("end")
-    msg_list.insert(tkinter.END, msg + "{Sent}")
+    msg_list.insert(tkinter.END, msg + "{sent}")
     my_msg.set("")  # Clears input field.
-    client_socket.send(bytes("{is_not_typing}", "utf8"))
+    # client_socket.send(bytes("{is_not_typing}", "utf8"))
     client_socket.send(bytes(msg, "utf8"))
-    if msg == "{quit}":
+    if msg == "{{{quit}}}":
         t.cancel()
         client_socket.close()
         top.quit()
@@ -44,9 +48,9 @@ def send(event=None):  # event is passed by binders.
 
 def on_closing(event=None):
     """This function is to be called when the window is closed."""
-    my_msg.set("{quit}")
+    my_msg.set("{{{quit}}}")
     t.cancel()
-    client_socket.send(bytes("{quit}", "utf8"))
+    client_socket.send(bytes("{{{quit}}}", "utf8"))
     send()
 
 
@@ -113,11 +117,11 @@ typing_label.pack()
 top.protocol("WM_DELETE_WINDOW", on_closing)
 
 # HOST = input('Enter host: ')
-HOST = '127.0.0.1'
+HOST = '192.168.0.126'
 # PORT = input('Enter port: ')
-PORT = '33000'
+PORT = '8080'
 if not PORT:
-    PORT = 33000  # Default value.
+    PORT = 8080  # Default value.
 else:
     PORT = int(PORT)
 
@@ -129,3 +133,9 @@ client_socket.connect(ADDR)
 receive_thread = Thread(target=receive)
 receive_thread.start()
 tkinter.mainloop()  # Starts GUI execution.
+
+DISCONNECT_MESSAGE = "{{{quit}}}"
+TYPING_MESSAGE = "{{{typing}}}"
+NOT_TYPING_MESSAGE = "{{{not_typing}}}"
+SEEN_MESSAGE = "{{{seen}}}"
+NAME_MESSAGE = "{{{name}}}"
