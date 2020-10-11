@@ -8,9 +8,10 @@ def accept_connection():
     while True:
         client_connection, client_address = server.accept()
         print(f"{client_address} has connected.")
-        msg = "Hello! Please enter your name"
+        msg = "Hello! Please enter your name."
         send_encode(client_connection, msg)
-        Thread(target=handle_client, args=(client_connection, client_address)).start()
+        handle_client_thread = Thread(target=handle_client, args=(client_connection, client_address))
+        handle_client_thread.start()
 
 
 def handle_client(client, address):  # Takes client socket as argument.
@@ -47,6 +48,7 @@ def handle_client(client, address):  # Takes client socket as argument.
                 print(f"{address} has disconnected")
                 msg = f"{name} has left the chat."
                 broadcast_all(msg)
+                broadcast_all(NOT_TYPING_MESSAGE)
                 break
 
 
@@ -73,7 +75,8 @@ def broadcast_different(client, msg, name):
 
 clients = {}
 
-HOST = socket.gethostbyname(socket.gethostname())
+# HOST = socket.gethostbyname(socket.gethostname())
+HOST = 'localhost'
 PORT = 8080
 ADDR = (HOST, PORT)
 
@@ -91,7 +94,7 @@ server.bind(ADDR)
 if __name__ == "__main__":
     server.listen(2)
     print(f"Server is listening on {HOST}")
-    thread = Thread(target=accept_connection)
-    thread.start()
-    thread.join()
+    accept_connection_thread = Thread(target=accept_connection)
+    accept_connection_thread.start()
+    accept_connection_thread.join()
     server.close()
