@@ -7,7 +7,7 @@ def receive_decode(socket):
         return msg
 
 
-def encode_send(socket, msg):
+def send_encode(socket, msg):
 
     message = msg.encode(FORMAT)
     msg_length = len(message)
