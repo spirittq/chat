@@ -16,16 +16,18 @@ def accept_connection():
 
 def handle_client(client, address):  # Takes client socket as argument.
 
-    name = receive_decode(client)
-
-    while name == TYPING_MESSAGE or name == NOT_TYPING_MESSAGE or name == SEEN_MESSAGE:
-        if name == QUIT_MESSAGE:
-            del clients[client]
+    while True:
+        name = receive_decode(client)
+        if name == TYPING_MESSAGE or name == NOT_TYPING_MESSAGE or name == SEEN_MESSAGE:
+            pass
+        elif name == QUIT_MESSAGE:
             print(f"{address} has disconnected.")
+            break
         else:
-            name = receive_decode(client)
+            break
 
     if name != QUIT_MESSAGE:
+        name = name.replace(CHECK_MESSAGE, '')
         msg = f"You are known as {name}. Type {QUIT_MESSAGE} to exit."
         send_encode(client, msg)
         msg = f"{name} has entered chat."
@@ -68,9 +70,9 @@ def broadcast_different(client, msg, name):
                 send_encode(sock, SEEN_MESSAGE)
         else:
             if client == sock:
-                send_encode(sock, "You: " + msg + " " + RECEIVED_MESSAGE)
+                send_encode(sock, RECEIVED_MESSAGE)
             else:
-                send_encode(sock, name + ": " + msg)
+                send_encode(sock, name + ": " + msg.replace(CHECK_MESSAGE, ""))
 
 
 clients = {}
@@ -84,9 +86,9 @@ QUIT_MESSAGE = "{{{quit}}}"
 TYPING_MESSAGE = "{{{typing}}}"
 NOT_TYPING_MESSAGE = "{{{not_typing}}}"
 SEEN_MESSAGE = "{{{seen}}}"
-NAME_MESSAGE = "{{{name}}}"
 SENT_MESSAGE = "{{{sent}}}"
 RECEIVED_MESSAGE = "{{{received}}}"
+CHECK_MESSAGE = "{{{safeguard}}}"
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)

@@ -10,22 +10,15 @@ def receive():
     while True:
         try:
             msg = receive_decode(client_socket)
-
             if msg[-12:] == TYPING_MESSAGE:
                 gui_typing_indicator.config(text=msg)
             elif msg == NOT_TYPING_MESSAGE:
                 gui_typing_indicator.config(text='')
-            elif msg == SEEN_MESSAGE and msg != gui_msg_list.get("end"):
-                gui_msg_list.insert("end", msg)
+            elif msg == SEEN_MESSAGE and msg == gui_msg_list.get("end"):
+                pass
             else:
-                if gui_msg_list.get("end") == SEEN_MESSAGE:
+                if gui_msg_list.get("end") == SEEN_MESSAGE or gui_msg_list.get("end") == SENT_MESSAGE or gui_msg_list.get("end") == RECEIVED_MESSAGE:
                     gui_msg_list.delete("end")
-                elif gui_msg_list.get("end")[-10:] == SENT_MESSAGE and gui_msg_list.get("end")[:4] != "You:":
-                    gui_msg_list.delete("end")
-                if gui_msg_list.get("end")[-14:] == RECEIVED_MESSAGE and gui_msg_list.get("end")[:4] == "You:":
-                    rewrite_msg_received = gui_msg_list.get("end")[:-14]
-                    gui_msg_list.delete("end")
-                    gui_msg_list.insert("end", rewrite_msg_received)
                 gui_msg_list.insert("end", msg)
         except OSError:
             break
@@ -36,16 +29,22 @@ def send(event=None):
     msg = gui_msg_input.get()
 
     if msg != "":
-        if gui_msg_list.get("end") == "Hello! Please enter your name.":
-            gui.title(msg)
-            print(gui.title())
-        elif gui_msg_list.get("end") == SEEN_MESSAGE:
-            gui_msg_list.delete("end")
-        gui_msg_list.insert("end", msg + " " + SENT_MESSAGE)
-        gui_msg_input.set("")
-        not_typing()
-        send_encode(client_socket, msg)
+        if msg != QUIT_MESSAGE:
+            if gui_msg_list.get("end") == "Hello! Please enter your name.":
+                gui.title(msg)
+            elif gui_msg_list.get("end") == SEEN_MESSAGE or gui_msg_list.get("end") == SENT_MESSAGE or gui_msg_list.get("end") == RECEIVED_MESSAGE:
+                gui_msg_list.delete("end")
+            gui_msg_list.insert("end", "You: " + msg)
+            gui_msg_list.insert("end", SENT_MESSAGE)
+            gui_msg_input.set("")
+            send_encode(client_socket, msg + CHECK_MESSAGE)
+            not_typing()
         if msg == QUIT_MESSAGE:
+            print(msg)
+            gui_msg_list.insert("end", QUIT_MESSAGE)
+            send_encode(client_socket, QUIT_MESSAGE)
+            print("sent")
+            not_typing()
             timer.cancel()
             client_socket.close()
             gui.quit()
@@ -129,11 +128,9 @@ QUIT_MESSAGE = "{{{quit}}}"
 TYPING_MESSAGE = "{{{typing}}}"
 NOT_TYPING_MESSAGE = "{{{not_typing}}}"
 SEEN_MESSAGE = "{{{seen}}}"
-NAME_MESSAGE = "{{{name}}}"
 SENT_MESSAGE = "{{{sent}}}"
 RECEIVED_MESSAGE = "{{{received}}}"
-# CHECK_MESSAGE = "{{{safeguard}}}" for future reference,
-# to prevent altering chat if client sends a manual message with SENT_MESSAGE or RECEIVED_MESSAGE
+CHECK_MESSAGE = "{{{safeguard}}}"
 
 ADDR = (HOST, PORT)
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
