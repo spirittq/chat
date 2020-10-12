@@ -1,3 +1,8 @@
+import logging
+
+logging.basicConfig(filename='server.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+
+
 def receive_decode(socket):
 
     msg_length = socket.recv(HEADER).decode(FORMAT)
@@ -9,12 +14,12 @@ def receive_decode(socket):
 
 def send_encode(socket, msg):
 
-    message = msg.encode(FORMAT)
-    msg_length = len(message)
+    msg = msg.encode(FORMAT)
+    msg_length = len(msg)
     send_length = str(msg_length).encode(FORMAT)
     send_length += b' ' * (HEADER - len(send_length))
     socket.send(send_length)
-    socket.send(message)
+    socket.send(msg)
 
 
 HEADER = 64
