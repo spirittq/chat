@@ -12,16 +12,16 @@ def accept_connection():
             client_connection, client_address = server.accept()
             logging.info(f"{client_address} has connected.")
             msg = "Hello! Please enter your name."
-            send_encode(client_connection, msg)
+            send_encode(client_connection, msg)  # sends the first message to the client
             handle_client_thread = Thread(target=handle_client, args=(client_connection, client_address))
             handle_client_thread.start()
     except Exception:
         logging.exception("accept connection")
 
 
-def handle_client(client, address):  # Takes client socket as argument.
+def handle_client(client, address):
     try:
-        name = getting_name(client, address)
+        name = getting_name(client, address)  # first received message is the name
 
         if name != QUIT_MESSAGE:
             name = setting_name(name, client)
@@ -32,10 +32,9 @@ def handle_client(client, address):  # Takes client socket as argument.
 
 
 def getting_name(client, address):
-
     try:
         while True:
-            name = receive_decode(client)
+            name = receive_decode(client)  # avoid name accidentally be set as system message
             if name == TYPING_MESSAGE or name == NOT_TYPING_MESSAGE or name == SEEN_MESSAGE:
                 pass
             elif name == QUIT_MESSAGE:
@@ -54,7 +53,7 @@ def setting_name(name, client):
         send_encode(client, msg)
         msg = f"{name} has entered chat."
         broadcast_all(msg)
-        clients[client] = name
+        clients[client] = name  # clients is used later in broadcasting
         return name
     except Exception:
         logging.exception('setting_name')
@@ -63,7 +62,7 @@ def setting_name(name, client):
 def processing_msg(name, client, address):
     try:
         while True:
-            msg = receive_decode(client)
+            msg = receive_decode(client)  # check if system message or user message is received
 
             if msg == TYPING_MESSAGE:
                 broadcast_all(name + " is " + TYPING_MESSAGE)
@@ -84,7 +83,7 @@ def processing_msg(name, client, address):
         logging.exception("processing_msg")
 
 
-def broadcast_all(msg):
+def broadcast_all(msg):  # same message is sent to all clients
     try:
         for sock in clients:
             send_encode(sock, msg)
@@ -92,7 +91,7 @@ def broadcast_all(msg):
         logging.exception("broadcast_all")
 
 
-def broadcast_different(client, msg, name):
+def broadcast_different(client, msg, name):  # different message is sent to client-sender and client-receiver
     try:
         for sock in clients:
             if msg == SEEN_MESSAGE:
@@ -119,6 +118,7 @@ try:
     PORT = 8080
     ADDR = (HOST, PORT)
 
+    # system messages used to differentiate what each received message does
     QUIT_MESSAGE = "{{{quit}}}"
     TYPING_MESSAGE = "{{{typing}}}"
     NOT_TYPING_MESSAGE = "{{{not_typing}}}"
@@ -142,3 +142,4 @@ if __name__ == "__main__":
         server.close()
     except Exception:
         logging.exception("An error occured.")
+        server.close()
